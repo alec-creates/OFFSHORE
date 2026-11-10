@@ -27,20 +27,24 @@ reading the signs and moving in time.
 
 ## Relaxed fishing vs. avoidable danger
 
-The two goals conflict only if danger can catch an idle player off guard. These rules prevent that:
+The split is by place. **Safe waters allow unattended fishing; dangerous waters require you to respond to
+telegraphed warnings.** The game never escapes for you and never makes an idle boat immune. Leaving the
+game running unattended in dangerous water is a risk you choose, and you are warned before you choose it.
 
 1. **Danger is a property of the place, shown before you go.** Each ground has a published danger level
-   (map, buoys, water color). Water near port is level 0 and never spawns major threats. A player who wants
-   pure relaxation can fish there forever at a modest income.
+   (map, buoys, water color). Water near port is level 0 and never spawns major threats, so a player who
+   wants pure relaxation can fish there unattended indefinitely at a modest income.
 2. **A danger director, not random rolls.** One director starts a threat only when the current ground
    allows it and the recovery cooldown since the last threat has passed. There is at most one major
    threat at a time.
 3. **Long, layered telegraphs.** Every threat moves through *Forecast → Visible → Imminent → Active →
    Passing*. Forecast and Visible together last at least about 60–90 s of game time, and each stage has a
    visual and an audio cue plus a HUD warning line.
-4. **Auto-fishing never carries you into damage.** At *Imminent*, auto-fishing stops casting new lines and
-   the warning gets louder. Any helm input (throttle, steering, raising anchor) stops fishing instantly.
-   The fish on the line is lost, the bait is kept.
+4. **Responding is always possible and always quick, but it is the player's job.** Any helm input
+   (throttle, steering, raising anchor) stops fishing instantly: the fish on the line is lost, the bait is
+   kept. At *Imminent* the warning escalates (louder audio, flashing HUD line). Auto-fishing may stop
+   casting new lines at that point, but that only stops the catch. It does not move the boat or reduce
+   damage: an anchored, unattended boat in a storm's path still takes the damage.
 5. **Pause freezes everything.** Fishing, the danger director and weather all run on game time; there is no
    offline progress.
 6. **Failure is a setback, not a reset.** Hull at 0 → rescue tow to port: you lose part of the catch in
