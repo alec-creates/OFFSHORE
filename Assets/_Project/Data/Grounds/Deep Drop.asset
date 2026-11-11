@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 899217c27a55a2b4f97cf3e66f925be0, type: 3}
+  m_Name: Deep Drop
+  m_EditorClassIdentifier: Offshore.Runtime::Offshore.FishingGround
+  displayName: Deep Drop
+  description: Where the shelf falls away north of the islands. Slow bites, big pelagic fish.
+  depth: "60\u2013200 m"
+  bottom: Steep drop-off
+  danger: 2
+  biteDelay: {x: 8, y: 16}
+  markerColor: {r: 1, g: 0.5, b: 0.2, a: 1}
+  catches:
+  - species: {fileID: 11400000, guid: d3e7acb07fba70448999989e7b41dd42, type: 2}
+    chance: 50
+    minSize: 0.2
+    maxSize: 1
+  - species: {fileID: 11400000, guid: 3ade4611ca09b2040a2c195e0542ad57, type: 2}
+    chance: 35
+    minSize: 0
+    maxSize: 0.75
+  - species: {fileID: 11400000, guid: 72e3ab6929507b64991bb92b33132af0, type: 2}
+    chance: 15
+    minSize: 0.6
+    maxSize: 1

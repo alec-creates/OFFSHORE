@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 899217c27a55a2b4f97cf3e66f925be0, type: 3}
+  m_Name: Harbor Flats
+  m_EditorClassIdentifier: Offshore.Runtime::Offshore.FishingGround
+  displayName: Harbor Flats
+  description: Shallow sandy flats just outside the harbor. Small fish and quick bites.
+  depth: "3\u20136 m"
+  bottom: Sand and seagrass
+  danger: 0
+  biteDelay: {x: 3, y: 7}
+  markerColor: {r: 0.2, g: 0.82, b: 0.76, a: 1}
+  catches:
+  - species: {fileID: 11400000, guid: 72e3ab6929507b64991bb92b33132af0, type: 2}
+    chance: 50
+    minSize: 0
+    maxSize: 0.7
+  - species: {fileID: 11400000, guid: 66da6f4456631234f9276535fc0d2e65, type: 2}
+    chance: 35
+    minSize: 0
+    maxSize: 0.6
+  - species: {fileID: 11400000, guid: f7036523550bb154887df8ed12ee33f3, type: 2}
+    chance: 15
+    minSize: 0
+    maxSize: 0.35

@@ -36,13 +36,16 @@ namespace Offshore
             public Vector2 to;
             [Min(0f)] public float landRadius;
             [Min(1f)] public float shallowWidth;
+            [Tooltip("Underwater shallows (reef, sand flats): turquoise water but no shoreline foam.")]
+            public bool submerged;
 
-            public Shoal(Vector2 from, Vector2 to, float landRadius, float shallowWidth)
+            public Shoal(Vector2 from, Vector2 to, float landRadius, float shallowWidth, bool submerged = false)
             {
                 this.from = from;
                 this.to = to;
                 this.landRadius = landRadius;
                 this.shallowWidth = shallowWidth;
+                this.submerged = submerged;
             }
 
             public float DepthFraction(Vector2 p)
@@ -234,7 +237,15 @@ namespace Offshore
             float depth = DepthFractionAt(x, z);
             Color deep = Color.Lerp(deepColor, deepVariationColor, Mathf.PerlinNoise(x * 0.012f + 31.7f, z * 0.012f + 11.3f));
             Color water = Color.Lerp(shallowColor, deep, Mathf.SmoothStep(0f, 1f, depth));
-            water.a = shoreFoam > 0f ? 1f - Mathf.SmoothStep(0f, 1f, depth / shoreFoam) : 0f;
+
+            // Foam only where water meets something above the surface.
+            float shoreDepth = 1f;
+            var p = new Vector2(x, z);
+            foreach (var shoal in shoals)
+            {
+                if (!shoal.submerged) shoreDepth = Mathf.Min(shoreDepth, shoal.DepthFraction(p));
+            }
+            water.a = shoreFoam > 0f ? 1f - Mathf.SmoothStep(0f, 1f, shoreDepth / shoreFoam) : 0f;
             return water;
         }
     }

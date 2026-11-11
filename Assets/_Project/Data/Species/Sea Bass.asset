@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9243450a56c1f5845a678bd355692a39, type: 3}
+  m_Name: Sea Bass
+  m_EditorClassIdentifier: Offshore.Runtime::Offshore.FishSpecies
+  displayName: Sea Bass
+  note: Hunts around rocks and structure; the big ones live on the reef.
+  minKg: 0.8
+  maxKg: 9
+  lengthRange: {x: 0.3, y: 0.8}
+  reelBaseSeconds: 3
+  reelSecondsPerKg: 0.45
+  color: {r: 0.5, g: 0.55, b: 0.6, a: 1}

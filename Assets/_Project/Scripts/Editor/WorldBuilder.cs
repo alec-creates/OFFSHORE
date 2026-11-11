@@ -82,12 +82,15 @@ namespace Offshore.EditorTools
             BuildPort();
             BuildIslands();
             BuildBuoys();
+            FishingSettings fishingSettings = FishingData.LoadOrCreate(out FishingData.Grounds grounds);
+            BuildFishingGrounds(grounds);
             BuildMapBounds();
             sea.SetShoals(shoals);
 
             BoatController boat = BuildBoat(sea);
+            AutoFisher fisher = BuildFishingRig(boat, sea, fishingSettings);
             BuildCamera(boat);
-            BuildHud(boat);
+            BuildHud(boat, fisher);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -291,7 +294,7 @@ namespace Offshore.EditorTools
             }
 
             // Submerged reef: shallow water only, no collision.
-            shoals.Add(new SeaSurface.Shoal(new Vector2(170f, -120f), new Vector2(200f, -95f), 0f, 34f));
+            shoals.Add(new SeaSurface.Shoal(new Vector2(170f, -120f), new Vector2(200f, -95f), 0f, 34f, submerged: true));
         }
 
         static void Island(Transform parent, string name, Vector2 position, float radius, float height, int trees, bool beach)
@@ -332,30 +335,130 @@ namespace Offshore.EditorTools
             var buoys = new GameObject("Buoys").transform;
             Material red = Lit("Buoy Red", new Color(0.85f, 0.15f, 0.12f), 0.4f);
             Material green = Lit("Buoy Green", new Color(0.15f, 0.65f, 0.3f), 0.4f);
-            Material yellow = Lit("Buoy Yellow", new Color(0.98f, 0.8f, 0.15f), 0.4f);
 
-            // Channel out of the harbor.
+            // Channel out of the harbor. (The reef is marked by its fishing-ground buoys.)
             foreach (float z in new[] { -182f, -155f })
             {
                 Buoy(buoys, "Channel Buoy (port)", new Vector3(-13f, 0f, z), red);
                 Buoy(buoys, "Channel Buoy (starboard)", new Vector3(13f, 0f, z), green);
             }
-
-            // Reef markers.
-            foreach (var p in new[] { new Vector3(150f, 0f, -135f), new Vector3(215f, 0f, -80f), new Vector3(205f, 0f, -135f) })
-            {
-                Buoy(buoys, "Reef Marker", p, yellow);
-            }
         }
 
-        static void Buoy(Transform parent, string name, Vector3 position, Material material)
+        static void Buoy(Transform parent, string name, Vector3 position, Material material, float scale = 1f)
         {
             var buoy = new GameObject(name).transform;
             buoy.SetParent(parent, false);
             buoy.localPosition = position;
+            buoy.localScale = Vector3.one * scale;
             MeshPiece("Float", buoy, LowPolyMeshes.Frustum("Buoy Float", 6, 0.8f, 0.6f, -0.4f, 0.6f), Vector3.zero, material);
             MeshPiece("Cone", buoy, LowPolyMeshes.Frustum("Buoy Cone", 6, 0.45f, 0f, 0f, 1.6f), new Vector3(0f, 0.6f, 0f), material);
             buoy.gameObject.AddComponent<FloatingBob>();
+        }
+
+        // ---------------------------------------------------------------- Fishing grounds
+
+        /// <summary>Map placement of each ground: centre (x, z) and radius. What lives there is in the ground assets.</summary>
+        public static readonly (string name, Vector2 center, float radius)[] GroundLayout =
+        {
+            (FishingData.HarborFlats, new Vector2(-85f, -165f), 30f),
+            (FishingData.GullReef, new Vector2(185f, -108f), 40f),
+            (FishingData.DeepDrop, new Vector2(-70f, 215f), 50f),
+        };
+
+        static void BuildFishingGrounds(FishingData.Grounds grounds)
+        {
+            var parent = new GameObject("Fishing Grounds").transform;
+            foreach (var (name, center, radius) in GroundLayout)
+            {
+                FishingGround ground = grounds.ByName(name);
+                var zoneObject = new GameObject(name);
+                zoneObject.transform.SetParent(parent, false);
+                zoneObject.transform.localPosition = new Vector3(center.x, 0f, center.y);
+                var zone = zoneObject.AddComponent<FishingGroundZone>();
+                Assign(zone, "ground", ground);
+                var serialized = new SerializedObject(zone);
+                serialized.FindProperty("radius").floatValue = radius;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+
+                // Ring of marker buoys in the ground's colour.
+                Material marker = Lit($"Buoy {name}", ground.MarkerColor, 0.4f);
+                const int count = 8;
+                for (int i = 0; i < count; i++)
+                {
+                    float a = (i + 0.5f) * Mathf.PI * 2f / count;
+                    Buoy(zoneObject.transform, $"{name} Marker", new Vector3(Mathf.Sin(a) * radius, 0f, Mathf.Cos(a) * radius), marker, 0.75f);
+                }
+            }
+
+            // The flats are shallow sand: give them turquoise water like the reef.
+            var flats = GroundLayout[0];
+            shoals.Add(new SeaSurface.Shoal(flats.center, flats.center, 0f, flats.radius * 1.2f, submerged: true));
+        }
+
+        static AutoFisher BuildFishingRig(BoatController boat, SeaSurface sea, FishingSettings settings)
+        {
+            GameObject boatObject = boat.gameObject;
+            Transform model = boatObject.transform.Find("Model");
+            var hold = boatObject.AddComponent<CatchHold>();
+            var fisher = boatObject.AddComponent<AutoFisher>();
+            Assign(fisher, "boat", boat);
+            Assign(fisher, "hold", hold);
+            Assign(fisher, "input", boatObject.GetComponent<HelmInput>());
+            Assign(fisher, "settings", settings);
+
+            // Rod in a holder at the starboard quarter, pointing aft and outboard.
+            Material blank = Lit("Rod Blank", new Color(0.12f, 0.12f, 0.14f), 0.6f);
+            var rodPivot = new GameObject("Rod").transform;
+            rodPivot.SetParent(model, false);
+            rodPivot.localPosition = new Vector3(1.3f, 1.4f, -3.9f);
+            rodPivot.localRotation = Quaternion.Euler(-40f, 150f, 0f);
+            Block("Blank", rodPivot, new Vector3(0f, 0f, 1.3f), new Vector3(0.07f, 0.07f, 2.6f), blank, collider: false);
+            Block("Reel", rodPivot, new Vector3(0f, -0.08f, 0.35f), new Vector3(0.14f, 0.14f, 0.14f), Lit("Reel Gold", new Color(0.9f, 0.7f, 0.25f), 0.6f), collider: false);
+            var tip = new GameObject("Rod Tip").transform;
+            tip.SetParent(rodPivot, false);
+            tip.localPosition = new Vector3(0f, 0f, 2.6f);
+
+            var bobber = new GameObject("Bobber").transform;
+            MeshPiece("Float", bobber, LowPolyMeshes.Frustum("Bobber Float", 6, 0.22f, 0.12f, -0.12f, 0.12f), Vector3.zero, Lit("Bobber Red", new Color(0.92f, 0.15f, 0.12f), 0.5f));
+            MeshPiece("Top", bobber, LowPolyMeshes.Frustum("Bobber Top", 6, 0.12f, 0f, 0f, 0.3f), new Vector3(0f, 0.12f, 0f), Lit("Paint White", Color.white));
+
+            var lineObject = new GameObject("Fishing Line");
+            var line = lineObject.AddComponent<LineRenderer>();
+            line.positionCount = 14;
+            line.useWorldSpace = true;
+            line.widthMultiplier = 0.06f;
+            line.shadowCastingMode = ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.sharedMaterial = LoadOrCreateMaterial("Fishing Line", () =>
+            {
+                var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                m.SetColor("_BaseColor", new Color(0.95f, 0.97f, 0.9f));
+                return m;
+            });
+
+            // The landed fish, held up at the stern for a moment. Tinted per species at runtime.
+            var display = new GameObject("Catch Display").transform;
+            display.SetParent(model, false);
+            display.localPosition = new Vector3(1.4f, 2.6f, -4.7f);
+            Material fishMaterial = Lit("Fish", Color.white, 0.6f);
+            var fishBody = MeshPiece("Body", display, LowPolyMeshes.FishBody(), Vector3.zero, fishMaterial);
+            var fishTail = MeshPiece("Tail", display, LowPolyMeshes.FishTail(), Vector3.zero, fishMaterial);
+
+            var visuals = boatObject.AddComponent<FishingVisuals>();
+            Assign(visuals, "fisher", fisher);
+            Assign(visuals, "sea", sea);
+            Assign(visuals, "rodPivot", rodPivot);
+            Assign(visuals, "rodTip", tip);
+            Assign(visuals, "bobber", bobber);
+            Assign(visuals, "line", line);
+            Assign(visuals, "catchDisplay", display);
+            var serializedVisuals = new SerializedObject(visuals);
+            var renderers = serializedVisuals.FindProperty("catchRenderers");
+            renderers.arraySize = 2;
+            renderers.GetArrayElementAtIndex(0).objectReferenceValue = fishBody.GetComponent<Renderer>();
+            renderers.GetArrayElementAtIndex(1).objectReferenceValue = fishTail.GetComponent<Renderer>();
+            serializedVisuals.ApplyModifiedPropertiesWithoutUndo();
+            return fisher;
         }
 
         // ---------------------------------------------------------------- The charter boat (bow +Z)
@@ -372,7 +475,7 @@ namespace Offshore.EditorTools
             var hullCollider = boatObject.AddComponent<BoxCollider>();
             hullCollider.size = new Vector3(3.3f, 2f, 9.2f);
             hullCollider.center = new Vector3(0f, 0.3f, 0f);
-            const string hullPhysicsPath = MaterialFolder + "/Hull.physicsMaterial";
+            const string hullPhysicsPath = MaterialFolder + "/Hull Physics.asset";
             var physicsMaterial = AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(hullPhysicsPath);
             if (physicsMaterial == null)
             {
@@ -511,7 +614,7 @@ namespace Offshore.EditorTools
 
         // ---------------------------------------------------------------- HUD
 
-        static void BuildHud(BoatController boat)
+        static void BuildHud(BoatController boat, AutoFisher fisher)
         {
             var canvasObject = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler));
             canvasObject.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
@@ -535,9 +638,11 @@ namespace Offshore.EditorTools
             anchor.color = new Color(1f, 0.85f, 0.4f);
 
             Text heading = Label(canvas, "Heading", "N  000°", 28, TextAnchor.UpperCenter, new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(300f, 40f), new Vector2(0.5f, 1f));
-            Text hint = Label(canvas, "Hint", "", 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(0f, 120f), new Vector2(1200f, 40f));
-            Label(canvas, "Controls", "W/S throttle · A/D steer · Space anchor\nMouse wheel or +/- zoom · Esc pause", 18,
-                TextAnchor.UpperRight, new Vector2(1f, 1f), new Vector2(-30f, -24f), new Vector2(600f, 60f), new Vector2(1f, 1f)).color = new Color(1f, 1f, 1f, 0.75f);
+            Text hint = Label(canvas, "Hint", "", 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(0f, 270f), new Vector2(1200f, 40f));
+            Label(canvas, "Controls", "W/S throttle · A/D steer · Space anchor\nF fish · Tab hold · Mouse wheel or +/- zoom · Esc pause", 18,
+                TextAnchor.UpperRight, new Vector2(1f, 1f), new Vector2(-30f, -24f), new Vector2(640f, 60f), new Vector2(1f, 1f)).color = new Color(1f, 1f, 1f, 0.75f);
+
+            BuildFishingHud(canvas, fisher, boat.GetComponent<HelmInput>());
 
             RectTransform pause = Panel(canvas, "Pause Overlay", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0.05f, 0.1f, 0.55f));
             pause.offsetMin = pause.offsetMax = Vector2.zero;
@@ -555,6 +660,63 @@ namespace Offshore.EditorTools
             Assign(hud, "anchorText", anchor);
             Assign(hud, "hintText", hint);
             Assign(hud, "pauseOverlay", pause.gameObject);
+        }
+
+        static void BuildFishingHud(Transform canvas, AutoFisher fisher, HelmInput input)
+        {
+            var panelColor = new Color(0.03f, 0.08f, 0.14f, 0.6f);
+
+            // Fishing ground card, top left.
+            RectTransform card = Panel(canvas, "Ground Card", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(460f, 140f), panelColor);
+            RectTransform stripe = Fill(card, "Stripe", Color.cyan, new Vector2(0f, 0f), new Vector2(0f, 1f));
+            stripe.sizeDelta = new Vector2(8f, 0f);
+            stripe.anchoredPosition = new Vector2(4f, 0f);
+            Text title = Label(card, "Title", "OPEN WATER", 26, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(24f, -12f), new Vector2(420f, 32f), new Vector2(0f, 1f));
+            title.fontStyle = FontStyle.Bold;
+            Text info = Label(card, "Info", "", 19, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(24f, -50f), new Vector2(420f, 84f), new Vector2(0f, 1f));
+            info.color = new Color(0.85f, 0.92f, 1f);
+            info.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            // Fishing status, bottom centre.
+            RectTransform status = Panel(canvas, "Fishing Status", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(620f, 104f), panelColor);
+            status.pivot = new Vector2(0.5f, 0f);
+            status.anchoredPosition = new Vector2(0f, 130f);
+            Text statusText = Label(status, "Text", "", 26, TextAnchor.UpperCenter, new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(600f, 64f), new Vector2(0.5f, 1f));
+            RectTransform bar = Panel(status, "Bar", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 12f), new Vector2(560f, 12f), new Color(0f, 0f, 0f, 0.5f));
+            bar.pivot = new Vector2(0.5f, 0f);
+            bar.anchoredPosition = new Vector2(0f, 12f);
+            RectTransform statusFill = Fill(bar, "Fill", Color.cyan, Vector2.zero, new Vector2(0f, 1f));
+
+            Text notice = Label(canvas, "Fishing Notice", "", 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f), new Vector2(0f, -86f), new Vector2(1400f, 44f));
+
+            // Hold gauge, bottom right, with the contents panel above it.
+            RectTransform gauge = Panel(canvas, "Hold Gauge", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-30f, 30f), new Vector2(380f, 92f), panelColor);
+            Text holdText = Label(gauge, "Text", "", 22, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(16f, -10f), new Vector2(350f, 56f), new Vector2(0f, 1f));
+            RectTransform holdBar = Panel(gauge, "Bar", new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(16f, 12f), new Vector2(348f, 14f), new Color(0f, 0f, 0f, 0.5f));
+            RectTransform holdFill = Fill(holdBar, "Fill", Color.green, Vector2.zero, new Vector2(0f, 1f));
+
+            RectTransform holdPanel = Panel(canvas, "Hold Panel", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-30f, 134f), new Vector2(560f, 380f), new Color(0.03f, 0.08f, 0.14f, 0.85f));
+            Text holdList = Label(holdPanel, "List", "", 20, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(18f, -14f), new Vector2(524f, 350f), new Vector2(0f, 1f));
+            holdList.horizontalOverflow = HorizontalWrapMode.Wrap;
+            holdPanel.gameObject.SetActive(false);
+
+            var hud = canvas.gameObject.AddComponent<FishingHud>();
+            Assign(hud, "fisher", fisher);
+            Assign(hud, "input", input);
+            Assign(hud, "groundTitle", title);
+            Assign(hud, "groundInfo", info);
+            Assign(hud, "groundStripe", stripe.GetComponent<Image>());
+            Assign(hud, "statusGroup", status.gameObject);
+            Assign(hud, "statusText", statusText);
+            Assign(hud, "statusFill", statusFill);
+            Assign(hud, "statusFillImage", statusFill.GetComponent<Image>());
+            Assign(hud, "statusBar", bar.gameObject);
+            Assign(hud, "noticeText", notice);
+            Assign(hud, "holdText", holdText);
+            Assign(hud, "holdFill", holdFill);
+            Assign(hud, "holdFillImage", holdFill.GetComponent<Image>());
+            Assign(hud, "holdPanel", holdPanel.gameObject);
+            Assign(hud, "holdList", holdList);
         }
 
         static RectTransform Panel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size, Color color)

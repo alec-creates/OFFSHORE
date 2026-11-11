@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 899217c27a55a2b4f97cf3e66f925be0, type: 3}
+  m_Name: Gull Reef
+  m_EditorClassIdentifier: Offshore.Runtime::Offshore.FishingGround
+  displayName: Gull Reef
+  description: Coral reef south-east of Gull Island. Mid-size reef fish.
+  depth: "8\u201315 m"
+  bottom: Coral and rock
+  danger: 1
+  biteDelay: {x: 5, y: 10}
+  markerColor: {r: 0.98, g: 0.8, b: 0.15, a: 1}
+  catches:
+  - species: {fileID: 11400000, guid: 2d94f9dadaa6b4742bae27c4a26dc960, type: 2}
+    chance: 40
+    minSize: 0
+    maxSize: 0.8
+  - species: {fileID: 11400000, guid: f7036523550bb154887df8ed12ee33f3, type: 2}
+    chance: 35
+    minSize: 0.2
+    maxSize: 1
+  - species: {fileID: 11400000, guid: 72e3ab6929507b64991bb92b33132af0, type: 2}
+    chance: 15
+    minSize: 0.3
+    maxSize: 1
+  - species: {fileID: 11400000, guid: d3e7acb07fba70448999989e7b41dd42, type: 2}
+    chance: 10
+    minSize: 0
+    maxSize: 0.4

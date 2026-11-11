@@ -6,8 +6,6 @@ namespace Offshore
     /// <summary>Minimal helm readout: speed, throttle lever, heading, anchor state, hints and the pause overlay.</summary>
     public class HelmHud : MonoBehaviour
     {
-        static readonly string[] Compass = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
-
         [SerializeField] BoatController boat;
         [SerializeField] HelmInput input;
         [SerializeField] Text speedText;
@@ -62,7 +60,7 @@ namespace Offshore
             throttleAsternFill.anchorMin = new Vector2(0f, Mathf.Lerp(0.5f, 0f, Mathf.Max(0f, -lever)));
 
             float heading = boat.Heading;
-            headingText.text = $"{Compass[Mathf.RoundToInt(heading / 45f) % 8]}  {heading:000}°";
+            headingText.text = $"{Offshore.Compass.Point(heading)}  {heading:000}°";
 
             anchorText.text = boat.Anchored ? "ANCHORED" : "";
 

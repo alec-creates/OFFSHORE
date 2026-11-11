@@ -16,6 +16,9 @@ namespace Offshore
         InputAction zoomScroll;
         InputAction zoomKeys;
         InputAction pause;
+        InputAction fish;
+        InputAction holdPanel;
+        InputAction devEmptyHold;
 
         /// <summary>-1 (S) to 1 (W) while held.</summary>
         public float Throttle => GamePause.IsPaused ? 0f : throttle.ReadValue<float>();
@@ -40,6 +43,15 @@ namespace Offshore
 
         public bool PausePressed => pause.WasPressedThisFrame();
 
+        /// <summary>F: start or stop fishing. Ignored while paused.</summary>
+        public bool FishTogglePressed => !GamePause.IsPaused && fish.WasPressedThisFrame();
+
+        /// <summary>Tab: show or hide the hold contents.</summary>
+        public bool HoldPanelPressed => holdPanel.WasPressedThisFrame();
+
+        /// <summary>F9, DEVELOPMENT ONLY: empty the hold. Only honoured in the editor and development builds.</summary>
+        public bool DevEmptyHoldPressed => devEmptyHold.WasPressedThisFrame();
+
         void Awake()
         {
             throttle = new InputAction("Throttle", InputActionType.Value);
@@ -59,9 +71,13 @@ namespace Offshore
 
             pause = new InputAction("Pause", InputActionType.Button, "<Keyboard>/escape");
             pause.AddBinding("<Keyboard>/p");
+
+            fish = new InputAction("Fish", InputActionType.Button, "<Keyboard>/f");
+            holdPanel = new InputAction("Hold", InputActionType.Button, "<Keyboard>/tab");
+            devEmptyHold = new InputAction("DevEmptyHold", InputActionType.Button, "<Keyboard>/f9");
         }
 
-        InputAction[] All => new[] { throttle, steer, anchor, zoomScroll, zoomKeys, pause };
+        InputAction[] All => new[] { throttle, steer, anchor, zoomScroll, zoomKeys, pause, fish, holdPanel, devEmptyHold };
 
         void OnEnable()
         {

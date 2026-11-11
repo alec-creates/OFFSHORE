@@ -100,6 +100,45 @@ namespace Offshore.EditorTools
             return Save(name, builder.ToMesh(name));
         }
 
+        /// <summary>Fish body, 1 m nose (+Z) to tail root: a stretched diamond. Pair with <see cref="FishTail"/>.</summary>
+        public static Mesh FishBody()
+        {
+            var nose = new Vector3(0f, 0f, 0.5f);
+            var back = new Vector3(0f, 0f, -0.3f);
+            var top = new Vector3(0f, 0.17f, 0.05f);
+            var bottom = new Vector3(0f, -0.13f, 0.05f);
+            var left = new Vector3(-0.075f, 0f, 0.05f);
+            var right = new Vector3(0.075f, 0f, 0.05f);
+
+            var builder = new FacetBuilder();
+            foreach (var tip in new[] { nose, back })
+            {
+                builder.Triangle(tip, top, right);
+                builder.Triangle(tip, right, bottom);
+                builder.Triangle(tip, bottom, left);
+                builder.Triangle(tip, left, top);
+            }
+            return Save("Fish Body", builder.ToMesh("Fish Body"));
+        }
+
+        /// <summary>Thin forked tail fin behind <see cref="FishBody"/>.</summary>
+        public static Mesh FishTail()
+        {
+            const float t = 0.015f;
+            var root = new Vector3(0f, 0f, -0.26f);
+            var top = new Vector3(0f, 0.2f, -0.52f);
+            var bottom = new Vector3(0f, -0.2f, -0.52f);
+            Vector3 l = Vector3.left * t, r = Vector3.right * t;
+
+            var builder = new FacetBuilder();
+            builder.Triangle(root + l, top + l, bottom + l);
+            builder.Triangle(root + r, bottom + r, top + r);
+            builder.Quad(root + l, root + r, top + r, top + l);
+            builder.Quad(top + l, top + r, bottom + r, bottom + l);
+            builder.Quad(bottom + l, bottom + r, root + r, root + l);
+            return Save("Fish Tail", builder.ToMesh("Fish Tail"));
+        }
+
         static Mesh Save(string name, Mesh mesh)
         {
             if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets/_Project", "Meshes");

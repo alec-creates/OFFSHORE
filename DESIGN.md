@@ -102,14 +102,27 @@ A playable scene with a controllable boat, stylized ocean, port, islands, buoys 
 anchoring stops the boat within a few boat lengths; the camera never rotates and shows enough water ahead;
 zoom stays within limits; pausing freezes the boat and waves; PlayMode tests pass.
 
-### M2 — Automatic rod fishing
-- Three `FishingGround` assets (Harbor Flats: safe; Reef: medium; Deep Drop: remote), each a zone with its
-  own fish distribution, water tint and buoys.
-- About six `FishSpecies` assets and a `RodSetup` (rod plus bait).
-- Start fishing (F) when anchored or moving under about 1 kn. Auto-cycle: cast → wait → bite → reel → landed,
-  with times based on species, ground, bait and skill. It repeats until the hold is full, the bait runs
-  out, or the player interrupts.
-- A small hold (cargo capacity by weight) and a fishing status panel.
+### M2 — Automatic rod fishing *(implemented)*
+- Three `FishingGround` assets, each placed on the map by a `FishingGroundZone` and ringed with marker buoys
+  in its color:
+  - Harbor Flats: safe, sandy shallows.
+  - Gull Reef: moderate, turquoise reef.
+  - Deep Drop: high, open deep water.
+
+  Each has its own catch table (chance and size band per species) and bite delay.
+- Six `FishSpecies` assets (Mackerel, Flounder, Sea Bass, Red Snapper, Mahi-mahi, Yellowfin Tuna) with
+  weight range, length and reel time. `FishingSettings` holds the shared timings. All of these are
+  Inspector-tunable and are created once under `Data/`.
+- Rod fishing needs the boat **anchored and stopped over a fishing ground**. Press F to start. It then
+  repeats cast → wait → bite → reel → landed on its own, with no reflex input.
+- Fishing stops at once on F, on any helm input (W/S/A/D) or when the anchor is raised. Stopping never
+  changes the anchor, and a fish on the line is lost.
+- Every refusal or stop is explained on screen (no anchor, still moving, no ground, hold full, no room for
+  this fish).
+- Hold: 80 kg by weight. A fish that doesn't fit is released and fishing stops. Tab shows the contents;
+  in development builds F9 empties the hold (DEV ONLY, replaced by selling in M3).
+- Deferred from the original plan: the `RodSetup` (bait and tackle choice) moves to M3 with the shop, and
+  skill effects on timing move to M4. The danger rating is shown per ground but has no effect until M5.
 
 **Acceptance:** each ground produces a visibly different catch mix; any helm input stops fishing at once;
 when the hold is full, fishing stops with a clear message.
